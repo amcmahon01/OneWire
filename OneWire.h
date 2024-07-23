@@ -60,6 +60,21 @@ class OneWire
     IO_REG_TYPE bitmask;
     volatile IO_REG_TYPE *baseReg;
 
+    //Init to standard speed
+    struct t_dly {
+        uint8_t a = 10;
+        uint8_t a_read = 10;
+        uint8_t b = 64;
+        uint8_t c = 65;
+        uint8_t d = 10;
+        uint8_t e = 8;
+        uint8_t f = 53;
+        uint8_t g = 5;
+        uint16_t h = 480;
+        uint8_t i = 70;
+        uint16_t j = 410;   
+    } t_dly;
+
 #if ONEWIRE_SEARCH
     // global search state
     unsigned char ROM_NO[8];
@@ -110,6 +125,17 @@ class OneWire
     // not leave this powered if you don't have to, just in case
     // someone shorts your bus.
     void depower(void);
+
+    // Issue a 1-Wire resume command, you do the reset first.
+    void resume(void);
+
+    // Issue a 1-Wire overdrive rom select command, you do the reset first.
+    void odSelect(const uint8_t rom[8]);
+
+    // Issue a 1-Wire overdrive rom skip command, to address all on bus.
+    void odSkip(void);
+
+    void useOverdrive(bool);
 
 #if ONEWIRE_SEARCH
     // Clear the search state so that if will start from the beginning again.

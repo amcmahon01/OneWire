@@ -32,11 +32,14 @@ private email about OneWire).
 OneWire is now very mature code.  No changes other than adding
 definitions for newer hardware support are anticipated.
 
-  ESP32 mods authored by stickbreaker:
+Version 2.4:
+  Added overdrive support, Andrew McMahon
+
+ESP32 mods authored by stickbreaker:
   @stickbreaker 30APR2018 add IRAM_ATTR to read_bit() write_bit() to solve ICache miss timing failure. 
       thanks @everslick re:  https://github.com/espressif/arduino-esp32/issues/1335
   Altered by garyd9 for clean merge with Paul Stoffregen's source
-
+  
 Version 2.3:
   Unknown chip fallback mode, Roger Clark
   Teensy-LC compatibility, Paul Stoffregen
@@ -164,6 +167,7 @@ void OneWire::begin(uint8_t pin)
 	pinMode(pin, INPUT);
 	bitmask = PIN_TO_BITMASK(pin);
 	baseReg = PIN_TO_BASEREG(pin);
+  useOverdrive(false);
 #if ONEWIRE_SEARCH
 	reset_search();
 #endif
@@ -189,20 +193,20 @@ uint8_t CRIT_TIMING OneWire::reset(void)
 	// wait until the wire is high... just in case
 	do {
 		if (--retries == 0) return 0;
-		delayMicroseconds(2);
+		delayMicroseconds(t_dly.g);
 	} while ( !DIRECT_READ(reg, mask));
 
 	noInterrupts();
 	DIRECT_WRITE_LOW(reg, mask);
 	DIRECT_MODE_OUTPUT(reg, mask);	// drive output low
 	interrupts();
-	delayMicroseconds(480);
+	delayMicroseconds(t_dly.h);
 	noInterrupts();
 	DIRECT_MODE_INPUT(reg, mask);	// allow it to float
-	delayMicroseconds(70);
+	delayMicroseconds(t_dly.i);
 	r = !DIRECT_READ(reg, mask);
 	interrupts();
-	delayMicroseconds(410);
+	delayMicroseconds(t_dly.j);
 	return r;
 }
 
@@ -219,18 +223,18 @@ void CRIT_TIMING OneWire::write_bit(uint8_t v)
 		noInterrupts();
 		DIRECT_WRITE_LOW(reg, mask);
 		DIRECT_MODE_OUTPUT(reg, mask);	// drive output low
-		delayMicroseconds(10);
+		delayMicroseconds(t_dly.a);
 		DIRECT_WRITE_HIGH(reg, mask);	// drive output high
 		interrupts();
-		delayMicroseconds(55);
+		delayMicroseconds(t_dly.b);
 	} else {
 		noInterrupts();
 		DIRECT_WRITE_LOW(reg, mask);
 		DIRECT_MODE_OUTPUT(reg, mask);	// drive output low
-		delayMicroseconds(65);
+		delayMicroseconds(t_dly.c);
 		DIRECT_WRITE_HIGH(reg, mask);	// drive output high
 		interrupts();
-		delayMicroseconds(5);
+		delayMicroseconds(t_dly.d);
 	}
 }
 
@@ -247,12 +251,12 @@ uint8_t CRIT_TIMING OneWire::read_bit(void)
 	noInterrupts();
 	DIRECT_MODE_OUTPUT(reg, mask);
 	DIRECT_WRITE_LOW(reg, mask);
-	delayMicroseconds(3);
+	delayMicroseconds(t_dly.a_read);
 	DIRECT_MODE_INPUT(reg, mask);	// let pin float, pull up will raise
-	delayMicroseconds(10);
+	delayMicroseconds(t_dly.e);
 	r = DIRECT_READ(reg, mask);
 	interrupts();
-	delayMicroseconds(53);
+	delayMicroseconds(t_dly.f);
 	return r;
 }
 
@@ -331,6 +335,62 @@ void OneWire::depower()
 	noInterrupts();
 	DIRECT_MODE_INPUT(baseReg, bitmask);
 	interrupts();
+}
+
+void OneWire::resume()    //Resume previously matched ROM (must have called search, select or odSelect first)
+{
+    write(0xA5);
+}
+
+void OneWire::odSelect(const uint8_t rom[8])  //Choose ROM, overdrive enabled
+{
+    uint8_t i;
+
+    write(0x69);
+    useOverdrive(true);  //Stays enabled until useOverdrive(false) is called
+
+    for (i = 0; i < 8; i++) write(rom[i]);
+}
+
+void OneWire::odSkip()    //Skip ROM, overdrive enabled
+{
+    write(0x3C);
+    useOverdrive(true);   //Stays enabled until useOverdrive(false) is called
+}
+
+void OneWire::useOverdrive(bool use)
+{
+    //See Maxim app note 126 for reference (https://www.maximintegrated.com/en/design/technical-documents/app-notes/1/126.html)
+    if (use) {
+        //Overdrive
+        //Tested with DS28E17
+        t_dly.a = 2;
+        t_dly.a_read = 2;
+        t_dly.b = 14; //differs from Maxim app note to meet DS28E17 tslot requirement
+        t_dly.c = 8;
+        t_dly.d = 12;  //differs from Maxim app note to meet DS28E17 tslot requirement
+        t_dly.e = 2;
+        t_dly.f = 12;
+        t_dly.g = 4;
+        t_dly.h = 70;
+        t_dly.i = 10;
+        t_dly.j = 42;  
+    }
+    else {
+        //Standard Speed
+        //All except h, i and j differ slightly from the Maxim app note, as per lib version 2.3
+        t_dly.a = 6;
+        t_dly.a_read = 10;
+        t_dly.b = 64;
+        t_dly.c = 65;
+        t_dly.d = 11;
+        t_dly.e = 5;
+        t_dly.f = 55;
+        t_dly.g = 3;
+        t_dly.h = 500;
+        t_dly.i = 70;
+        t_dly.j = 410;  
+    }
 }
 
 #if ONEWIRE_SEARCH
@@ -600,4 +660,4 @@ uint16_t OneWire::crc16(const uint8_t* input, uint16_t len, uint16_t crc)
 #  undef interrupts() portEXIT_CRITICAL(&mux);}
 #endif
 // for info on this, search "IRAM_ATTR" at https://docs.espressif.com/projects/esp-idf/en/latest/esp32/api-guides/general-notes.html 
-#undef CRIT_TIMING 
+#undef CRIT_TIMING
