@@ -315,11 +315,14 @@ void OneWire::read_bytes(uint8_t *buf, uint16_t count) {
 //
 void OneWire::select(const uint8_t rom[8])
 {
+  if (overdrive) odSelect(rom);
+  else {
     uint8_t i;
 
     write(0x55);           // Choose ROM
 
     for (i = 0; i < 8; i++) write(rom[i]);
+  }
 }
 
 //
@@ -327,7 +330,8 @@ void OneWire::select(const uint8_t rom[8])
 //
 void OneWire::skip()
 {
-    write(0xCC);           // Skip ROM
+  if (overdrive) odSkip();
+  else write(0xCC);           // Skip ROM
 }
 
 void OneWire::depower()
@@ -362,21 +366,25 @@ void OneWire::useOverdrive(bool use)
 {
     //See Maxim app note 126 for reference (https://www.maximintegrated.com/en/design/technical-documents/app-notes/1/126.html)
     if (use) {
+        overdrive = true;
+        //digitalWriteFast(13, HIGH);
         //Overdrive
         //Tested with DS28E17
-        t_dly.a = 2;
-        t_dly.a_read = 2;
-        t_dly.b = 14; //differs from Maxim app note to meet DS28E17 tslot requirement
+        t_dly.a = 1;
+        t_dly.a_read = 1;
+        t_dly.b = 13; //differs from Maxim app note to meet DS28E17 tslot requirement
         t_dly.c = 8;
-        t_dly.d = 12;  //differs from Maxim app note to meet DS28E17 tslot requirement
-        t_dly.e = 2;
+        t_dly.d = 9;  //differs from Maxim app note to meet DS28E17 tslot requirement
+        t_dly.e = 1;
         t_dly.f = 12;
-        t_dly.g = 4;
+        t_dly.g = 3;
         t_dly.h = 70;
-        t_dly.i = 10;
-        t_dly.j = 42;  
+        t_dly.i = 9;
+        t_dly.j = 40;  
     }
     else {
+        overdrive = false;
+        //digitalWriteFast(13, LOW);
         //Standard Speed
         //All except h, i and j differ slightly from the Maxim app note, as per lib version 2.3
         t_dly.a = 6;

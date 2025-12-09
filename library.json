@@ -46,13 +46,17 @@
         },
         {
             "name": "Scott Roberts"
+        }		,
+        {
+            "name": "Andrew McMahon"
         }
     ],
-    "repository": {
+	"repository": {
         "type": "git",
-        "url": "https://github.com/PaulStoffregen/OneWire"
+        "url": "https://github.com/amcmahon01/OneWire"
     },
     "version": "2.3.8",
+    "version": "2.4.0",
     "homepage": "https://www.pjrc.com/teensy/td_libs_OneWire.html",
     "frameworks": "Arduino",
     "examples": [

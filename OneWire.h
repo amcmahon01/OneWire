@@ -60,6 +60,8 @@ class OneWire
     IO_REG_TYPE bitmask;
     volatile IO_REG_TYPE *baseReg;
 
+    bool overdrive = false;
+
     //Init to standard speed
     struct t_dly {
         uint8_t a = 10;
