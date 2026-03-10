@@ -388,16 +388,16 @@ void OneWire::useOverdrive(bool use)
         //Standard Speed
         //All except h, i and j differ slightly from the Maxim app note, as per lib version 2.3
         t_dly.a = 6;
-        t_dly.a_read = 10;
+        t_dly.a_read = 6;
         t_dly.b = 64;
-        t_dly.c = 65;
-        t_dly.d = 11;
-        t_dly.e = 5;
-        t_dly.f = 55;
-        t_dly.g = 3;
-        t_dly.h = 500;
+        t_dly.c = 60;
+        t_dly.d = 15;
+        t_dly.e = 9;
+        t_dly.f = 64;
+        t_dly.g = 0;
+        t_dly.h = 600;
         t_dly.i = 70;
-        t_dly.j = 410;  
+        t_dly.j = 530;  
     }
 }
 

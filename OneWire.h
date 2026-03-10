@@ -64,17 +64,17 @@ class OneWire
 
     //Init to standard speed
     struct t_dly {
-        uint8_t a = 10;
-        uint8_t a_read = 10;
+        uint8_t a = 6;
+        uint8_t a_read = 6;
         uint8_t b = 64;
-        uint8_t c = 65;
-        uint8_t d = 10;
-        uint8_t e = 8;
-        uint8_t f = 53;
-        uint8_t g = 5;
-        uint16_t h = 480;
+        uint8_t c = 60;
+        uint8_t d = 15;
+        uint8_t e = 9;
+        uint8_t f = 64;
+        uint8_t g = 0;
+        uint16_t h = 600;
         uint8_t i = 70;
-        uint16_t j = 410;   
+        uint16_t j = 530;   
     } t_dly;
 
 #if ONEWIRE_SEARCH
